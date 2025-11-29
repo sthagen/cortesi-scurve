@@ -22,25 +22,19 @@ pub mod ops;
 /// N‑dimensional points and helpers.
 pub mod point;
 /// The `SpaceCurve` trait and related utilities.
-pub mod spacecurve;
+mod spacecurve;
 /// Grid specification helpers shared across curves.
 pub mod spec;
 
-// Back-compat re-exports for top-level curve modules
-pub use curves::{gray, hairyonion, hcurve, hilbert, onion, scan, zorder};
-
-use crate::spacecurve::SpaceCurve;
+pub use crate::spacecurve::SpaceCurve;
 
 /// Central registry of curve metadata and constructors.
 pub mod registry;
 
-/// List of curve names accepted by the public APIs and CLI.
-pub use registry::{CURVE_NAMES, curve_names};
-
 /// Construct a curve by name with the requested dimensionality and size.
 ///
 /// Returns an error if the combination is invalid or the name is unknown.
-pub fn pattern_from_name(
+pub fn curve_from_name(
     name: &str,
     dimension: u32,
     size: u32,

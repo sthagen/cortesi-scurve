@@ -7,7 +7,7 @@ use std::{fs::File, ops::Range, path::Path};
 
 use anyhow::{Result, anyhow, bail};
 use gif::{Encoder, Frame, Repeat};
-use spacecurve::{pattern_from_name, registry};
+use spacecurve::{curve_from_name, registry};
 
 use crate::map::{
     MapPalette, StrokeOptions, draw_chunk_overlay, render_chunk_image, render_map_image,
@@ -59,7 +59,7 @@ pub fn vis(input: &Path, width: u32, pattern_name: &str) -> Result<image::RgbaIm
         bail!("input file is empty");
     }
 
-    let pattern = pattern_from_name(pattern_name, 2, width)?;
+    let pattern = curve_from_name(pattern_name, 2, width)?;
 
     let mut imgbuf = image::ImageBuffer::new(width, width);
 
@@ -186,7 +186,7 @@ pub fn map(
     }
 
     let (side, adjusted) = resolve_curve_dimension(pattern_name, curve_dimension)?;
-    let pattern = pattern_from_name(pattern_name, 2, side)?;
+    let pattern = curve_from_name(pattern_name, 2, side)?;
     let length = pattern.length();
     let chunk = chunk.unwrap_or(0..length);
 
@@ -233,7 +233,7 @@ pub fn snake(options: SnakeOptions<'_>) -> Result<SnakeRender> {
     }
 
     let (side, adjusted) = resolve_curve_dimension(pattern_name, curve_dimension)?;
-    let pattern = pattern_from_name(pattern_name, 2, side)?;
+    let pattern = curve_from_name(pattern_name, 2, side)?;
     let length = pattern.length();
 
     if chunk.start >= chunk.end {
@@ -311,9 +311,9 @@ fn frame_delay_from_fps(fps: u16) -> u16 {
 /// walking `colormap_name` in RGB space.
 pub fn allrgb(pattern_name: &str, colormap_name: &str) -> Result<image::RgbaImage> {
     let width = 4096;
-    let pattern = pattern_from_name(pattern_name, 2, width)?;
+    let pattern = curve_from_name(pattern_name, 2, width)?;
     let mut imgbuf: image::RgbaImage = image::ImageBuffer::new(width, width);
-    let colormap = pattern_from_name(colormap_name, 3, 256)?;
+    let colormap = curve_from_name(colormap_name, 3, 256)?;
 
     let mut pb = pbr::ProgressBar::new(4096);
     pb.format("╢▌▌░╟");

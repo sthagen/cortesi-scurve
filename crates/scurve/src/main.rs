@@ -15,7 +15,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colornames::Color;
 use image::{Rgba, RgbaImage};
-use spacecurve::{CURVE_NAMES, registry};
+use spacecurve::registry;
 
 /// CLI command implementations.
 mod cmd;
@@ -69,13 +69,13 @@ impl FromStr for ChunkOffsets {
 
 /// Validate a curve name against the known set.
 fn parse_curve_name(s: &str) -> Result<String, String> {
-    if CURVE_NAMES.contains(&s) {
+    if registry::CURVE_NAMES.contains(&s) {
         Ok(s.to_string())
     } else {
         Err(format!(
             "Invalid curve name '{}'. Valid options: {}",
             s,
-            CURVE_NAMES.join(", ")
+            registry::CURVE_NAMES.join(", ")
         ))
     }
 }
@@ -244,7 +244,7 @@ enum Commands {
         /// Optional start/end offsets (START:END) for the rendered curve segment.
         chunk: Option<ChunkOffsets>,
 
-        #[arg(help = &format!("Pattern name (options: {})", CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
+        #[arg(help = &format!("Pattern name (options: {})", registry::CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
         /// Pattern name.
         pattern: String,
 
@@ -337,7 +337,7 @@ enum Commands {
         /// Frames per second for the animation (1-120).
         fps: u16,
 
-        #[arg(help = &format!("Pattern name (options: {})", CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
+        #[arg(help = &format!("Pattern name (options: {})", registry::CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
         /// Pattern name.
         pattern: String,
 
@@ -351,11 +351,11 @@ enum Commands {
     )]
     /// Generate a dense map that contains one pixel for each RGB colour.
     Allrgb {
-        #[arg(short = 'c', help = &format!("Pattern name for color map (options: {})", CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
+        #[arg(short = 'c', help = &format!("Pattern name for color map (options: {})", registry::CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
         /// Optional pattern name for the color map (defaults to `pattern`).
         colormap: Option<String>,
 
-        #[arg(help = &format!("Pattern name (options: {})", CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
+        #[arg(help = &format!("Pattern name (options: {})", registry::CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
         /// Pattern name for pixel layout.
         pattern: String,
 
@@ -367,7 +367,7 @@ enum Commands {
     #[command(about = "visualise a file")]
     /// Visualise a file using a space‑filling curve.
     Vis {
-        #[arg(short = 'p', help = &format!("Pattern name (options: {})", CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
+        #[arg(short = 'p', help = &format!("Pattern name (options: {})", registry::CURVE_NAMES.join(", ")), value_parser = parse_curve_name)]
         /// Optional pattern name (defaults to `hilbert`).
         pattern: Option<String>,
 

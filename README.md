@@ -27,6 +27,26 @@ tools for visualising and working with them.
 
 A Rust library for generating and working with space-filling curves.
 
+<!-- snips: crates/spacecurve/examples/hilbert.rs#example -->
+```rust
+// 2D Hilbert curve on an 8x8 grid (order 3)
+let curve = spacecurve::curve_from_name("hilbert", 2, 8)?;
+println!(
+    "{}D Hilbert length: {} cells",
+    curve.dimensions(),
+    curve.length()
+);
+
+let index = 10;
+let point = curve.point(index);
+println!("Point at index {index}: {:?}", point);
+
+let round_trip = curve.index(&point);
+println!("Index for {:?}: {round_trip}", point);
+
+assert_eq!(round_trip, index);
+```
+
 
 # scurve
 
@@ -35,6 +55,8 @@ A Rust library for generating and working with space-filling curves.
 
 
 A command-line tool and GUI for generating images of space-filling curves. 
+
+Install with `cargo install scurve`.
 
 
 # playground

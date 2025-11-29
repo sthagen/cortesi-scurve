@@ -3,6 +3,7 @@
 use std::{fs::File, io::BufWriter, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
+use spacecurve::registry;
 
 /// Canonical application name used across the GUI.
 pub const APP_NAME: &str = "spacecurve";
@@ -230,16 +231,16 @@ impl ScurveApp {
         theme::configure_visuals(&cc.egui_ctx);
 
         let include_experimental = options.include_experimental_curves;
-        let mut available_curves = spacecurve::curve_names(include_experimental);
+        let mut available_curves = registry::curve_names(include_experimental);
         if available_curves.is_empty() {
             // Ensure we always have something to show even if filters change.
-            available_curves = spacecurve::curve_names(true);
+            available_curves = registry::curve_names(true);
         }
 
         let default_curve = available_curves
             .first()
             .copied()
-            .unwrap_or(spacecurve::CURVE_NAMES[0]);
+            .unwrap_or(registry::CURVE_NAMES[0]);
 
         let mut app_state = AppState::default();
         let screenshot_config = options.screenshot;

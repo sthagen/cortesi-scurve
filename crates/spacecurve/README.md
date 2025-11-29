@@ -18,19 +18,22 @@ A Rust library for N-dimensional space-filling curves and spatial indexing.
 ## Usage
 
 ```rust
-use spacecurve::{SpaceCurve, pattern_from_name};
+use std::error::Error;
 
-fn main() {
+use spacecurve::{curve_from_name, SpaceCurve};
+
+fn main() -> Result<(), Box<dyn Error>> {
     // Create a 2D Hilbert curve of order 3 (8x8 grid)
-    let curve = pattern_from_name("hilbert", 2, 8).unwrap();
+    let curve = curve_from_name("hilbert", 2, 8)?;
 
-    // Map index to point
     let point = curve.point(10);
     println!("Point at index 10: {:?}", point);
 
-    // Map point back to index
     let index = curve.index(&point);
     assert_eq!(index, 10);
+
+    Ok(())
 }
 ```
 
+More usage is available in `examples/hilbert.rs`.

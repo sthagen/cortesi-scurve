@@ -6,7 +6,7 @@
 use std::ops::Range;
 
 use image::{Rgba, RgbaImage};
-use spacecurve::spacecurve::SpaceCurve;
+use spacecurve::SpaceCurve;
 
 /// Colors used when rendering a map image.
 #[derive(Clone, Copy, Debug)]
@@ -201,7 +201,7 @@ pub fn draw_chunk_overlay(
 #[cfg(test)]
 mod tests {
     use image::Rgba;
-    use spacecurve::{point::Point, spacecurve::SpaceCurve};
+    use spacecurve::{SpaceCurve, point::Point};
 
     use super::*;
 

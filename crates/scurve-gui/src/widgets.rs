@@ -2,7 +2,7 @@ use egui::{
     self, Response, Slider,
     epaint::{Shadow, Stroke},
 };
-use spacecurve::pattern_from_name;
+use spacecurve::curve_from_name;
 
 use crate::theme;
 
@@ -279,7 +279,7 @@ fn render_info_popup_contents(
     size: u32,
     info_open: &mut bool,
 ) {
-    if let Ok(curve) = pattern_from_name(curve_name, dim, size) {
+    if let Ok(curve) = curve_from_name(curve_name, dim, size) {
         ui.horizontal(|ui| {
             ui.label(egui::RichText::new(curve.name()).heading().strong());
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {

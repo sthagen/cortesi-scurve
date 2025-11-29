@@ -7,11 +7,11 @@ use assert_cmd::{
     cargo::CommandCargoExt,
 };
 use image::{DynamicImage, GenericImageView, Rgba};
-use spacecurve::pattern_from_name;
+use spacecurve::curve_from_name;
 use tempfile::tempdir;
 
 fn first_last_coords(width: u32, pattern: &str) -> (u32, u32, u32, u32) {
-    let pat = pattern_from_name(pattern, 2, width).expect("pattern ok");
+    let pat = curve_from_name(pattern, 2, width).expect("pattern ok");
     let p0 = pat.point(0);
     let p_last = pat.point(pat.length() - 1);
     (p0[0], p0[1], p_last[0], p_last[1])

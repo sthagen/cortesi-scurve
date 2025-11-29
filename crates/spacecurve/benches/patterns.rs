@@ -3,7 +3,7 @@
 use std::hint::black_box;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use spacecurve::pattern_from_name;
+use spacecurve::curve_from_name;
 
 /// Benchmark configurations: (curve_name, dimension, size).
 /// For power-of-two curves (hilbert, zorder, hcurve, gray): size must be power of 2.
@@ -58,7 +58,7 @@ fn bench_point(c: &mut Criterion) {
     let mut group = c.benchmark_group("point");
 
     for (name, dim, size) in bench_configs() {
-        let curve = pattern_from_name(name, dim, size).expect("valid curve");
+        let curve = curve_from_name(name, dim, size).expect("valid curve");
         let midpoint = curve.length() / 2;
 
         group.bench_function(BenchmarkId::new(name, format!("{dim}d-{size}")), |b| {
@@ -74,7 +74,7 @@ fn bench_index(c: &mut Criterion) {
     let mut group = c.benchmark_group("index");
 
     for (name, dim, size) in bench_configs() {
-        let curve = pattern_from_name(name, dim, size).expect("valid curve");
+        let curve = curve_from_name(name, dim, size).expect("valid curve");
         let pt = curve.point(curve.length() / 2);
 
         group.bench_function(BenchmarkId::new(name, format!("{dim}d-{size}")), |b| {
@@ -91,7 +91,7 @@ fn bench_hilbert_2d_vs_nd(c: &mut Criterion) {
 
     // Test at various sizes where 2D optimization should show benefit
     for size in [4, 8, 16, 32, 64] {
-        let curve_2d = pattern_from_name("hilbert", 2, size).expect("hilbert 2d");
+        let curve_2d = curve_from_name("hilbert", 2, size).expect("hilbert 2d");
         let midpoint = curve_2d.length() / 2;
         let pt = curve_2d.point(midpoint);
 
@@ -119,7 +119,7 @@ fn bench_scaling(c: &mut Criterion) {
 
     for name in curves {
         for &size in &sizes {
-            let curve = match pattern_from_name(name, 2, size) {
+            let curve = match curve_from_name(name, 2, size) {
                 Ok(c) => c,
                 Err(_) => continue, // Skip invalid configurations
             };

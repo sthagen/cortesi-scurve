@@ -5,7 +5,7 @@
 #![allow(missing_docs, clippy::tests_outside_test_module)]
 
 use proptest::prelude::*;
-use spacecurve::{CURVE_NAMES, pattern_from_name};
+use spacecurve::{curve_from_name, registry};
 
 /// Generate test configurations: (curve_name, dimension, size, max_index).
 /// We use smaller sizes to keep tests fast while still testing the bijection property.
@@ -50,7 +50,7 @@ proptest! {
     /// Test bijection property for Hilbert 2D curves.
     #[test]
     fn bijection_hilbert_2d(index in 0u32..256) {
-        let curve = pattern_from_name("hilbert", 2, 16).expect("hilbert 2d 16");
+        let curve = curve_from_name("hilbert", 2, 16).expect("hilbert 2d 16");
         if index < curve.length() {
             let point = curve.point(index);
             let recovered = curve.index(&point);
@@ -61,7 +61,7 @@ proptest! {
     /// Test bijection property for Hilbert 3D curves.
     #[test]
     fn bijection_hilbert_3d(index in 0u32..64) {
-        let curve = pattern_from_name("hilbert", 3, 4).expect("hilbert 3d 4");
+        let curve = curve_from_name("hilbert", 3, 4).expect("hilbert 3d 4");
         if index < curve.length() {
             let point = curve.point(index);
             let recovered = curve.index(&point);
@@ -72,7 +72,7 @@ proptest! {
     /// Test bijection property for Scan curves.
     #[test]
     fn bijection_scan(index in 0u32..100) {
-        let curve = pattern_from_name("scan", 2, 10).expect("scan 2d 10");
+        let curve = curve_from_name("scan", 2, 10).expect("scan 2d 10");
         if index < curve.length() {
             let point = curve.point(index);
             let recovered = curve.index(&point);
@@ -83,7 +83,7 @@ proptest! {
     /// Test bijection property for Z-order curves.
     #[test]
     fn bijection_zorder(index in 0u32..256) {
-        let curve = pattern_from_name("zorder", 2, 16).expect("zorder 2d 16");
+        let curve = curve_from_name("zorder", 2, 16).expect("zorder 2d 16");
         if index < curve.length() {
             let point = curve.point(index);
             let recovered = curve.index(&point);
@@ -94,7 +94,7 @@ proptest! {
     /// Test bijection property for H-curve.
     #[test]
     fn bijection_hcurve(index in 0u32..64) {
-        let curve = pattern_from_name("hcurve", 2, 8).expect("hcurve 2d 8");
+        let curve = curve_from_name("hcurve", 2, 8).expect("hcurve 2d 8");
         if index < curve.length() {
             let point = curve.point(index);
             let recovered = curve.index(&point);
@@ -105,7 +105,7 @@ proptest! {
     /// Test bijection property for Onion curves.
     #[test]
     fn bijection_onion(index in 0u32..64) {
-        let curve = pattern_from_name("onion", 2, 8).expect("onion 2d 8");
+        let curve = curve_from_name("onion", 2, 8).expect("onion 2d 8");
         if index < curve.length() {
             let point = curve.point(index);
             let recovered = curve.index(&point);
@@ -116,7 +116,7 @@ proptest! {
     /// Test bijection property for Hairy Onion curves.
     #[test]
     fn bijection_hairyonion(index in 0u32..64) {
-        let curve = pattern_from_name("hairyonion", 2, 8).expect("hairyonion 2d 8");
+        let curve = curve_from_name("hairyonion", 2, 8).expect("hairyonion 2d 8");
         if index < curve.length() {
             let point = curve.point(index);
             let recovered = curve.index(&point);
@@ -127,7 +127,7 @@ proptest! {
     /// Test bijection property for Gray code curves.
     #[test]
     fn bijection_gray(index in 0u32..256) {
-        let curve = pattern_from_name("gray", 2, 16).expect("gray 2d 16");
+        let curve = curve_from_name("gray", 2, 16).expect("gray 2d 16");
         if index < curve.length() {
             let point = curve.point(index);
             let recovered = curve.index(&point);
@@ -144,7 +144,7 @@ proptest! {
 #[test]
 fn bijection_at_zero() {
     for (name, dim, size, _) in curve_configs() {
-        let curve = pattern_from_name(name, dim, size).expect("curve");
+        let curve = curve_from_name(name, dim, size).expect("curve");
         let point = curve.point(0);
         let recovered = curve.index(&point);
         assert_eq!(
@@ -159,7 +159,7 @@ fn bijection_at_zero() {
 #[test]
 fn bijection_at_last_index() {
     for (name, dim, size, _) in curve_configs() {
-        let curve = pattern_from_name(name, dim, size).expect("curve");
+        let curve = curve_from_name(name, dim, size).expect("curve");
         let last = curve.length() - 1;
         let point = curve.point(last);
         let recovered = curve.index(&point);
@@ -175,7 +175,7 @@ fn bijection_at_last_index() {
 #[test]
 fn bijection_at_midpoint() {
     for (name, dim, size, _) in curve_configs() {
-        let curve = pattern_from_name(name, dim, size).expect("curve");
+        let curve = curve_from_name(name, dim, size).expect("curve");
         let mid = curve.length() / 2;
         let point = curve.point(mid);
         let recovered = curve.index(&point);
@@ -203,7 +203,7 @@ fn exhaustive_bijection_small_curves() {
     ];
 
     for (name, dim, size) in small_configs {
-        let curve = pattern_from_name(name, dim, size).expect("curve");
+        let curve = curve_from_name(name, dim, size).expect("curve");
         for i in 0..curve.length() {
             let point = curve.point(i);
             let recovered = curve.index(&point);
@@ -220,7 +220,7 @@ fn exhaustive_bijection_small_curves() {
 #[test]
 fn all_registered_curves_satisfy_bijection() {
     // Use the smallest valid configuration for each curve type
-    let configs: Vec<(&str, u32, u32)> = CURVE_NAMES
+    let configs: Vec<(&str, u32, u32)> = registry::CURVE_NAMES
         .iter()
         .map(|&name| {
             // Choose valid (dim, size) for each curve
@@ -234,7 +234,7 @@ fn all_registered_curves_satisfy_bijection() {
         .collect();
 
     for (name, dim, size) in configs {
-        let curve = pattern_from_name(name, dim, size).unwrap_or_else(|e| {
+        let curve = curve_from_name(name, dim, size).unwrap_or_else(|e| {
             panic!(
                 "Failed to create {} (dim={}, size={}): {}",
                 name, dim, size, e

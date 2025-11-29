@@ -1,4 +1,4 @@
-use spacecurve::{CURVE_NAMES, curve_names, pattern_from_name};
+use spacecurve::{curve_from_name, registry};
 
 /// Shared cache and selection state for 2D/3D curve panes.
 #[derive(Clone)]
@@ -23,10 +23,10 @@ pub struct CurveSelection<const D: usize> {
 
 impl<const D: usize> Default for CurveSelection<D> {
     fn default() -> Self {
-        let default_name = curve_names(false)
+        let default_name = registry::curve_names(false)
             .first()
             .copied()
-            .unwrap_or(CURVE_NAMES[0]);
+            .unwrap_or(registry::CURVE_NAMES[0]);
 
         Self::with_name(default_name)
     }
@@ -66,7 +66,7 @@ impl<const D: usize> CurveSelection<D> {
             self.cached_length = Some(len);
             return Some(len);
         }
-        match pattern_from_name(&self.name, D as u32, self.size) {
+        match curve_from_name(&self.name, D as u32, self.size) {
             Ok(pattern) => {
                 let len = pattern.length();
                 self.cached_length = Some(len);
@@ -86,7 +86,7 @@ impl<const D: usize> CurveSelection<D> {
             || self.cached_size != self.size
             || self.cached_points.is_empty()
         {
-            if let Ok(pattern) = pattern_from_name(&self.name, D as u32, self.size) {
+            if let Ok(pattern) = curve_from_name(&self.name, D as u32, self.size) {
                 let mut pts = Vec::with_capacity(pattern.length() as usize);
                 for i in 0..pattern.length() {
                     let p = pattern.point(i);

@@ -1,9 +1,7 @@
 //! Integration tests checking reflection and continuity properties.
 #[cfg(test)]
 mod tests {
-    use spacecurve::{
-        error, onion::OnionCurve, pattern_from_name, point::Point, spacecurve::SpaceCurve,
-    };
+    use spacecurve::{SpaceCurve, curve_from_name, curves::onion::OnionCurve, error, point::Point};
 
     fn pattern_reflects(pattern_name: &str, p: &dyn SpaceCurve) {
         for off in 0..p.length() {
@@ -40,7 +38,7 @@ mod tests {
                     #[test]
                     fn [<$pattern _reflection_ $dims d_ $size>]() -> error::Result<()> {
                         if $reflection {
-                            let curve = pattern_from_name($pattern, $dims, $size)?;
+                            let curve = curve_from_name($pattern, $dims, $size)?;
                             pattern_reflects(&format!("{}({},{})", $pattern, $dims, $size), curve.as_ref());
                         }
                         Ok(())
@@ -49,7 +47,7 @@ mod tests {
                     #[test]
                     fn [<$pattern _continuous_ $dims d_ $size>]() -> error::Result<()> {
                         if $continuous {
-                            let curve = pattern_from_name($pattern, $dims, $size)?;
+                            let curve = curve_from_name($pattern, $dims, $size)?;
                             pattern_continuous(&format!("{}({},{})", $pattern, $dims, $size), curve.as_ref());
                         }
                         Ok(())
