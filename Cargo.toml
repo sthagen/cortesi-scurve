@@ -1,5 +1,6 @@
 [workspace.package]
 authors = ["Aldo Cortesi <aldo@corte.si>"]
+version = "0.1.1"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/cortesi/spacecurve"
@@ -55,4 +56,3 @@ codegen-units = 1
 
 [profile.dev.package."*"]
 opt-level = 3
-
