@@ -40,7 +40,7 @@ fn entry(x: u32) -> u32 {
 }
 
 /// N‑D Hilbert: compute point coordinates for `index`.
-pub fn hilbert_point(dimension: u32, order: u32, index: u32) -> SmallVec<[u32; 4]> {
+pub fn hilbert_point(dimension: u32, order: u32, index: u32) -> SmallVec<[u32; 8]> {
     let hwidth = order * dimension;
     let mut entry_state = 0;
     let mut direction_state = 0;

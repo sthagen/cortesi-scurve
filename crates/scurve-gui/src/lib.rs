@@ -156,6 +156,22 @@ pub struct AppState {
     pub frame_time_last_display_s: Option<f64>,
     /// Latest canvas rect for positioning overlays relative to the view.
     pub last_canvas_rect: Option<egui::Rect>,
+    /// Reusable buffer for 3D rendering (projected points).
+    pub cache_3d_points: Vec<[f32; 3]>,
+    /// Reusable buffer for 3D rendering (screen points).
+    pub cache_3d_screen: Vec<egui::Pos2>,
+    /// Reusable buffer for 3D rendering (connectivity).
+    pub cache_connected: Vec<bool>,
+    /// Reusable buffer for 3D rendering (shorten caps).
+    pub cache_caps: Vec<(bool, bool)>,
+    /// Reusable buffer for 3D rendering (depth sorting).
+    pub cache_depths: Vec<(usize, f32)>,
+    /// Reusable buffer for 2D rendering (screen points).
+    pub cache_2d_screen: Vec<egui::Pos2>,
+    /// Reusable buffer for 2D line segments.
+    pub cache_2d_run: Vec<egui::Pos2>,
+    /// Reusable buffer for depth binning (3D).
+    pub cache_bins: Vec<Vec<usize>>,
 }
 
 impl Default for AppState {
@@ -180,6 +196,14 @@ impl Default for AppState {
             frame_time_display_ms: None,
             frame_time_last_display_s: None,
             last_canvas_rect: None,
+            cache_3d_points: Vec::new(),
+            cache_3d_screen: Vec::new(),
+            cache_connected: Vec::new(),
+            cache_caps: Vec::new(),
+            cache_depths: Vec::new(),
+            cache_2d_screen: Vec::new(),
+            cache_2d_run: Vec::new(),
+            cache_bins: vec![Vec::new(); 128],
         }
     }
 }

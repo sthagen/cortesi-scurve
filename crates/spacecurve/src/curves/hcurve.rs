@@ -9,6 +9,7 @@ The original C implementation by Netay contained an error in Grey/InvGrey usage
 for D>=3, leading to discontinuities, which is fixed here.
 */
 use crate::{error, ops, point, spacecurve::SpaceCurve, spec::GridSpec};
+use smallvec::SmallVec;
 
 // Convention used in low-level functions:
 // d: Dimension
@@ -149,7 +150,7 @@ fn h_index(d: u32, n: u32, p: &[u32], corners: &[Vec<u32>]) -> u32 {
 
 // decode_h in C. (Index to Point)
 /// Index to point mapping for the H-curve.
-fn h_point(d: u32, n: u32, idx: u32, corners: &[Vec<u32>]) -> Vec<u32> {
+fn h_point(d: u32, n: u32, idx: u32, corners: &[Vec<u32>]) -> SmallVec<[u32; 8]> {
     let mut alphas = vec![0; n as usize];
     let two_power_d = 1u32 << d;
     let two_power_d_64 = 1u64 << d;

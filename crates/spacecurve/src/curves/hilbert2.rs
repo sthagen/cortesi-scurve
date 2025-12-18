@@ -28,7 +28,7 @@ pub fn hilbert_index(order: u32, point: &[u32]) -> u32 {
 }
 
 /// 2D Hilbert point for a given `order` and `index`.
-pub fn hilbert_point(order: u32, index: u32) -> SmallVec<[u32; 4]> {
+pub fn hilbert_point(order: u32, index: u32) -> SmallVec<[u32; 8]> {
     let hwidth = order * 2;
     let mut entry_state = 0;
     let mut direction_state = 0;

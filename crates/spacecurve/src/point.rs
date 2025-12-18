@@ -6,18 +6,18 @@ use smallvec::SmallVec;
 
 /// Compact N‑dimensional point wrapper used by curves.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Point(pub SmallVec<[u32; 4]>);
+pub struct Point(pub SmallVec<[u32; 8]>);
 
 impl Point {
     /// Create a new `Point` from a backing vector.
-    pub fn new(vec: impl Into<SmallVec<[u32; 4]>>) -> Self {
+    pub fn new(vec: impl Into<SmallVec<[u32; 8]>>) -> Self {
         Self(vec.into())
     }
 
     /// Create a new `Point`, asserting the coordinate count matches `dimension`.
     ///
     /// This is a convenience to avoid repeating dimension checks at every callsite.
-    pub fn new_with_dimension(dimension: u32, vec: impl Into<SmallVec<[u32; 4]>>) -> Self {
+    pub fn new_with_dimension(dimension: u32, vec: impl Into<SmallVec<[u32; 8]>>) -> Self {
         let coords = vec.into();
         debug_assert_eq!(
             coords.len() as u32,

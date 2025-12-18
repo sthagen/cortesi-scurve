@@ -11,45 +11,26 @@ use spacecurve::curve_from_name;
 fn bench_configs() -> Vec<(&'static str, u32, u32)> {
     vec![
         // Hilbert curve - 2D optimized and N-D general
-        ("hilbert", 2, 4),
-        ("hilbert", 2, 8),
         ("hilbert", 2, 16),
         ("hilbert", 3, 4),
-        ("hilbert", 3, 8),
-        ("hilbert", 4, 4),
         // Z-order (Morton) curve
-        ("zorder", 2, 4),
-        ("zorder", 2, 8),
         ("zorder", 2, 16),
         ("zorder", 3, 4),
-        ("zorder", 3, 8),
         // H-curve
-        ("hcurve", 2, 4),
-        ("hcurve", 2, 8),
         ("hcurve", 2, 16),
         ("hcurve", 3, 4),
         // Scan (boustrophedon)
-        ("scan", 2, 4),
-        ("scan", 2, 8),
         ("scan", 2, 16),
         ("scan", 3, 4),
-        ("scan", 3, 8),
         // Onion
-        ("onion", 2, 4),
-        ("onion", 2, 8),
         ("onion", 2, 16),
         ("onion", 3, 4),
         // Hairy Onion
-        ("hairyonion", 2, 4),
-        ("hairyonion", 2, 8),
         ("hairyonion", 2, 16),
         ("hairyonion", 3, 4),
         // Gray code
-        ("gray", 2, 4),
-        ("gray", 2, 8),
         ("gray", 2, 16),
         ("gray", 3, 4),
-        ("gray", 3, 8),
     ]
 }
 

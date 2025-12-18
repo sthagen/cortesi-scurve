@@ -26,7 +26,7 @@ impl HilbertImpl {
     }
 
     /// Compute coordinates from an index using the chosen implementation.
-    fn point(&self, dimension: u32, order: u32, index: u32) -> SmallVec<[u32; 4]> {
+    fn point(&self, dimension: u32, order: u32, index: u32) -> SmallVec<[u32; 8]> {
         match self {
             Self::TwoD => hilbert2::hilbert_point(order, index),
             Self::Nd => hilbertn::hilbert_point(dimension, order, index),

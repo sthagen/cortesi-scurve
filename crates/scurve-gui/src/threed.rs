@@ -249,33 +249,39 @@ fn draw_3d_space_curve(
 
     let rotation_y = app_state.rotation_angle;
     let rotation_x = theme::canvas_3d::CAMERA_TILT;
-    let (curve_points_3d, curve_points_2d) = project_points(
+
+    // Use cached buffers
+    project_points(
         original_curve_points,
         curve_size,
         rotation_x,
         rotation_y,
         center,
         scale,
+        &mut app_state.cache_3d_points,
+        &mut app_state.cache_3d_screen,
     );
 
-    let connected = compute_connected(original_curve_points);
-    let shorten_caps = compute_shorten_caps(&connected);
-    let segments_with_depth = build_segment_depths(
-        &curve_points_3d,
-        &connected,
+    compute_connected(original_curve_points, &mut app_state.cache_connected);
+    compute_shorten_caps(&app_state.cache_connected, &mut app_state.cache_caps);
+    build_segment_depths(
+        &app_state.cache_3d_points,
+        &app_state.cache_connected,
         shared_settings.show_long_jumps,
+        &mut app_state.cache_depths,
     );
-    // Sorted by depth binning inside draw_curve_segments
 
+    // Sorted by depth binning inside draw_curve_segments
     draw_curve_segments(
         painter,
-        &curve_points_2d,
-        &segments_with_depth,
-        &shorten_caps,
+        &app_state.cache_3d_screen,
+        &app_state.cache_depths,
+        &app_state.cache_caps,
         shared_settings.curve_opacity,
+        &mut app_state.cache_bins,
     );
 
-    if shared_settings.snake_enabled && curve_points_2d.len() > 1 {
+    if shared_settings.snake_enabled && app_state.cache_3d_screen.len() > 1 {
         fill_snake_segments(
             &mut app_state.snake_segments_3d,
             snake_offset,
@@ -289,32 +295,32 @@ fn draw_3d_space_curve(
         } else {
             snake_membership_mask(
                 snake_segments,
-                curve_points_2d.len(),
+                app_state.cache_3d_screen.len(),
                 &mut app_state.snake_mask_3d,
             )
         };
         let snake_included = snake_included_mask(
             snake_segments,
-            &connected,
+            &app_state.cache_connected,
             shared_settings.show_long_jumps,
             &mut app_state.snake_included_3d,
         );
         let draws = collect_snake_draws(
-            &curve_points_2d,
-            &curve_points_3d,
-            &connected,
+            &app_state.cache_3d_screen,
+            &app_state.cache_3d_points,
+            &app_state.cache_connected,
             snake_included,
-            &shorten_caps,
+            &app_state.cache_caps,
         );
         // Sorted by depth binning inside draw_snake_draws
-        draw_snake_draws(painter, &draws);
+        draw_snake_draws(painter, &draws, &mut app_state.cache_bins);
 
         if !shared_settings.show_long_jumps {
             draw_isolated_snake_points(
                 painter,
                 original_curve_points,
-                &curve_points_2d,
-                &curve_points_3d,
+                &app_state.cache_3d_screen,
+                &app_state.cache_3d_points,
                 snake_segments,
                 snake_mask,
             );
@@ -325,13 +331,14 @@ fn draw_3d_space_curve(
         draw_isolated_points(
             painter,
             original_curve_points,
-            &curve_points_2d,
-            &curve_points_3d,
+            &app_state.cache_3d_screen,
+            &app_state.cache_3d_points,
         );
     }
 }
 
 /// Project integer 3D curve points into rotated 3D coordinates and 2D screen positions.
+#[allow(clippy::too_many_arguments)]
 fn project_points(
     original: &[[u32; 3]],
     curve_size: u32,
@@ -339,9 +346,14 @@ fn project_points(
     rotation_y: f32,
     center: egui::Pos2,
     scale: f32,
-) -> (Vec<[f32; 3]>, Vec<egui::Pos2>) {
-    let mut pts3d = Vec::with_capacity(original.len());
-    let mut pts2d = Vec::with_capacity(original.len());
+    pts3d: &mut Vec<[f32; 3]>,
+    pts2d: &mut Vec<egui::Pos2>,
+) {
+    pts3d.clear();
+    pts2d.clear();
+    pts3d.reserve(original.len());
+    pts2d.reserve(original.len());
+
     for p in original.iter() {
         let x = (p[0] as f32 / (curve_size - 1) as f32) * 2.0 - 1.0;
         let y = (p[1] as f32 / (curve_size - 1) as f32) * 2.0 - 1.0;
@@ -357,35 +369,34 @@ fn project_points(
         let screen_y = center.y - y_tilt * scale * perspective_scale;
         pts2d.push(egui::Pos2::new(screen_x, screen_y));
     }
-    (pts3d, pts2d)
 }
 
 /// Compute whether successive 3D points are adjacent (Manhattan distance <= 1).
-fn compute_connected(original: &[[u32; 3]]) -> Vec<bool> {
+fn compute_connected(original: &[[u32; 3]], connected: &mut Vec<bool>) {
+    connected.clear();
     if original.len() < 2 {
-        return Vec::new();
+        return;
     }
     let last_seg_idx = original.len() - 2;
-    let mut connected = Vec::with_capacity(last_seg_idx + 1);
+    connected.reserve(last_seg_idx + 1);
     for i in 0..=last_seg_idx {
         connected.push(is_adjacent_3d(&original[i], &original[i + 1]));
     }
-    connected
 }
 
 /// For each segment, decide whether to shorten start/end caps at exposed ends.
-fn compute_shorten_caps(connected: &[bool]) -> Vec<(bool, bool)> {
+fn compute_shorten_caps(connected: &[bool], caps: &mut Vec<(bool, bool)>) {
+    caps.clear();
     if connected.is_empty() {
-        return Vec::new();
+        return;
     }
     let last = connected.len() - 1;
-    let mut caps = Vec::with_capacity(connected.len());
+    caps.reserve(connected.len());
     for i in 0..=last {
         let prev_conn = if i == 0 { false } else { connected[i - 1] };
         let next_conn = if i == last { false } else { connected[i + 1] };
         caps.push((!prev_conn, !next_conn));
     }
-    caps
 }
 
 /// Build a list of segment indices with their average depth for painter sorting.
@@ -393,8 +404,10 @@ fn build_segment_depths(
     pts3d: &[[f32; 3]],
     connected: &[bool],
     show_long_jumps: bool,
-) -> Vec<(usize, f32)> {
-    let mut segs = Vec::with_capacity(connected.len());
+    segs: &mut Vec<(usize, f32)>,
+) {
+    segs.clear();
+    segs.reserve(connected.len());
     for i in 0..connected.len() {
         let start_depth = pts3d[i][2];
         let end_depth = pts3d[i + 1][2];
@@ -403,7 +416,6 @@ fn build_segment_depths(
             segs.push((i, avg_depth));
         }
     }
-    segs
 }
 
 /// Draw depth‑sorted curve segments using depth binning.
@@ -420,12 +432,16 @@ fn draw_curve_segments(
     segments_with_depth: &[(usize, f32)],
     shorten_caps: &[(bool, bool)],
     opacity: f32,
+    bins: &mut [Vec<usize>],
 ) {
     if opacity <= 0.0 {
         return;
     }
 
-    let mut bins: Vec<Vec<usize>> = vec![Vec::new(); NUM_DEPTH_BINS];
+    for bin in bins.iter_mut() {
+        bin.clear();
+    }
+
     for (i, depth) in segments_with_depth {
         let normalized = theme::normalize_depth(*depth);
         let bin_idx = (normalized * (NUM_DEPTH_BINS as f32 - 1.0)).round() as usize;
@@ -552,21 +568,24 @@ fn collect_snake_draws(
 /// Similar to `draw_curve_segments`, this batches the snake segments into meshes
 /// to minimize draw calls. Continuous polyline paths (length >= 3) are still drawn
 /// as paths because they are already efficient, but isolated segments are batched.
-fn draw_snake_draws(painter: &egui::Painter, draws: &[SnakeDraw]) {
-    let mut bins: Vec<Vec<&SnakeDraw>> = vec![Vec::new(); NUM_DEPTH_BINS];
+fn draw_snake_draws(painter: &egui::Painter, draws: &[SnakeDraw], bins: &mut [Vec<usize>]) {
+    for bin in bins.iter_mut() {
+        bin.clear();
+    }
 
-    for d in draws {
+    for (i, d) in draws.iter().enumerate() {
         let normalized = theme::normalize_depth(d.depth);
         let bin_idx = (normalized * (NUM_DEPTH_BINS as f32 - 1.0)).round() as usize;
         if bin_idx < NUM_DEPTH_BINS {
-            bins[bin_idx].push(d);
+            bins[bin_idx].push(i);
         }
     }
 
     for bin in bins {
         let mut mesh = egui::Mesh::default();
 
-        for d in bin {
+        for &i in bin.iter() {
+            let d = &draws[i];
             if d.points.len() >= 3 {
                 painter.add(PathShape::line(
                     d.points.clone(),

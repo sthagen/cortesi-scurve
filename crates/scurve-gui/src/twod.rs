@@ -102,7 +102,14 @@ fn draw_2d_canvas(
         let inner_size = drawing_size - margin * 2.0;
         let scale = inner_size / (curve_size - 1) as f32;
 
-        let screen_points = build_screen_points(curve_points, drawing_rect, scale, margin);
+        build_screen_points(
+            curve_points,
+            drawing_rect,
+            scale,
+            margin,
+            &mut app_state.cache_2d_screen,
+        );
+        let screen_points = &app_state.cache_2d_screen;
 
         let line_color = theme::curve_color_with_brightness(1.0, shared_settings.curve_opacity);
         let line_width = theme::canvas_2d::LINE_WIDTH;
@@ -111,10 +118,11 @@ fn draw_2d_canvas(
             draw_main_curve_segments(
                 &painter,
                 curve_points,
-                &screen_points,
+                screen_points,
                 line_width,
                 line_color,
                 shared_settings.show_long_jumps,
+                &mut app_state.cache_2d_run,
             );
         }
 
@@ -144,11 +152,12 @@ fn draw_2d_canvas(
             draw_snake_overlay(
                 &painter,
                 curve_points,
-                &screen_points,
+                screen_points,
                 snake_segments,
                 snake_mask,
                 snake_stroke,
                 shared_settings.show_long_jumps,
+                &mut app_state.cache_2d_run,
             );
         }
     }
@@ -162,14 +171,16 @@ fn build_screen_points(
     drawing_rect: egui::Rect,
     scale: f32,
     margin: f32,
-) -> Vec<egui::Pos2> {
-    curve_points
-        .iter()
-        .map(|p| egui::Pos2 {
+    out: &mut Vec<egui::Pos2>,
+) {
+    out.clear();
+    out.reserve(curve_points.len());
+    for p in curve_points {
+        out.push(egui::Pos2 {
             x: drawing_rect.min.x + margin + p[0] as f32 * scale,
             y: drawing_rect.min.y + margin + p[1] as f32 * scale,
-        })
-        .collect()
+        });
+    }
 }
 
 /// Draw the main curve segments and half‑segments for isolated nodes.
@@ -180,6 +191,7 @@ fn draw_main_curve_segments(
     line_width: f32,
     line_color: egui::Color32,
     show_long_jumps: bool,
+    run: &mut Vec<egui::Pos2>,
 ) {
     if show_long_jumps {
         painter.add(PathShape::line(
@@ -189,7 +201,7 @@ fn draw_main_curve_segments(
         return;
     }
 
-    let mut run: Vec<egui::Pos2> = Vec::new();
+    run.clear();
     let stroke = Stroke::new(line_width, line_color);
     for i in 0..curve_points.len() - 1 {
         if is_adjacent_2d(&curve_points[i], &curve_points[i + 1]) {
@@ -205,7 +217,7 @@ fn draw_main_curve_segments(
         }
     }
     if !run.is_empty() && run.len() >= 2 {
-        painter.add(PathShape::line(run, stroke));
+        painter.add(PathShape::line(run.clone(), stroke));
     }
 
     for i in 0..curve_points.len() {
@@ -238,6 +250,7 @@ fn draw_main_curve_segments(
 }
 
 /// Draw the animated snake overlay, honoring long‑jump visibility.
+#[allow(clippy::too_many_arguments)]
 fn draw_snake_overlay(
     painter: &egui::Painter,
     curve_points: &[[u32; 2]],
@@ -246,6 +259,7 @@ fn draw_snake_overlay(
     snake_mask: &[bool],
     snake_stroke: Stroke,
     show_long_jumps: bool,
+    current_run: &mut Vec<egui::Pos2>,
 ) {
     if show_long_jumps {
         let mut snake_path = Vec::new();
@@ -260,7 +274,7 @@ fn draw_snake_overlay(
         return;
     }
 
-    let mut current_run: Vec<egui::Pos2> = Vec::new();
+    current_run.clear();
     for &i in snake_segments {
         if i >= curve_points.len() {
             continue;
@@ -274,7 +288,8 @@ fn draw_snake_overlay(
         if !has_prev && !has_next {
             // Isolated point handled below
         } else if !has_prev {
-            current_run = vec![screen_points[i]];
+            current_run.clear();
+            current_run.push(screen_points[i]);
         } else if has_prev && !current_run.is_empty() {
             current_run.push(screen_points[i]);
             if !has_next {
@@ -286,7 +301,7 @@ fn draw_snake_overlay(
         }
     }
     if current_run.len() >= 2 {
-        painter.add(PathShape::line(current_run, snake_stroke));
+        painter.add(PathShape::line(current_run.clone(), snake_stroke));
     }
 
     for &i in snake_segments {

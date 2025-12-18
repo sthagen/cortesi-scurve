@@ -72,13 +72,7 @@ pub fn setbit(word: u32, width: u32, pos: u32, bit: u32) -> u32 {
 /// Count trailing set bits in `word` within `width` bits.
 #[inline]
 pub fn tsb(word: u32, width: u32) -> u32 {
-    let mut count = 0;
-    let mut v = word & bitmask(width);
-    while count < width && (v & 1) == 1 {
-        v >>= 1;
-        count += 1;
-    }
-    count
+    (word & bitmask(width)).trailing_ones()
 }
 
 /// Rotate the 2‑bit label used by the 2D Hilbert state machine.

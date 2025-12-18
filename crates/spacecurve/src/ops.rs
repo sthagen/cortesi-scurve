@@ -33,8 +33,8 @@ const fn bitmask(bits: u32) -> u32 {
 }
 
 /// Transpose a vector of n d-bit numbers into a vector of d n-bit numbers.
-pub fn bit_transpose(d: u32, v: &[u32]) -> Vec<u32> {
-    let mut ret = vec![0; d as usize];
+pub fn bit_transpose(d: u32, v: &[u32]) -> SmallVec<[u32; 8]> {
+    let mut ret = smallvec![0; d as usize];
     for (off, x) in v.iter().enumerate() {
         for bit in 0..d {
             if x & (1 << bit) != 0 {
@@ -189,7 +189,7 @@ fn interleave_generic(coords: &[u32], bits_per_axis: u32) -> u32 {
 }
 
 /// Deinterleave a Morton/Z-order code into coordinate components.
-pub fn deinterleave_lsb(dimension: u32, bits_per_axis: u32, value: u32) -> SmallVec<[u32; 4]> {
+pub fn deinterleave_lsb(dimension: u32, bits_per_axis: u32, value: u32) -> SmallVec<[u32; 8]> {
     if dimension == 0 {
         return smallvec![];
     }
@@ -220,7 +220,7 @@ pub fn deinterleave_lsb(dimension: u32, bits_per_axis: u32, value: u32) -> Small
     deinterleave_generic(dimension, bits_per_axis, value)
 }
 
-fn deinterleave_generic(dimension: u32, bits_per_axis: u32, value: u32) -> SmallVec<[u32; 4]> {
+fn deinterleave_generic(dimension: u32, bits_per_axis: u32, value: u32) -> SmallVec<[u32; 8]> {
     let mut coords = smallvec![0u32; dimension as usize];
     for bit in 0..bits_per_axis {
         for dim in 0..dimension {
@@ -260,9 +260,12 @@ mod tests {
     #[test]
     fn test_transpose() {
         let v: Vec<u32> = vec![0b00, 0b01, 0b10, 0b11];
-        assert_eq!(v, bit_transpose(4, &bit_transpose(2, &v)));
+        assert_eq!(
+            v.as_slice(),
+            bit_transpose(4, &bit_transpose(2, &v)).as_slice()
+        );
         let expected: Vec<u32> = vec![0b0011, 0b0101];
-        assert_eq!(bit_transpose(2, &v), expected);
+        assert_eq!(bit_transpose(2, &v).as_slice(), expected.as_slice());
     }
 
     #[test]
