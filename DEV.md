@@ -1,15 +1,15 @@
 # Developer Guide
 
 ## Web Dev
-- Live dev server: `uv run ./scripts/serve_web.py` (uses `wasm-server-runner`).
-- Alt: `cargo run --target wasm32-unknown-unknown --bin scurve-web`.
-- Build prod bundle: `uv run ./scripts/build_web.py`.
-- Serve bundle: `uv run ./scripts/serve_dist.py 8000` (any HTTP server works; don’t use `file://`).
-- Optional local aliases (add to `.cargo/config.toml`):
-  - `serve-web = "run --target wasm32-unknown-unknown --bin scurve-web"`
-  - `build-web = "build --target wasm32-unknown-unknown --bin scurve-web --profile wasm-release"`
+- One-time setup: `cargo xtask web setup`
+- Live dev server: `cargo xtask web serve` (uses `wasm-server-runner`).
+- Build prod bundle: `cargo xtask web build`.
+- Serve bundle: `cargo xtask web serve-dist 8000` (any HTTP server works; don’t use `file://`).
 
 Prod output: `dist/` with `index.html`, `scurve-web.js`, `scurve-web_bg.wasm` (auto-optimized with `wasm-opt` if available).
+
+## Tidy
+- Format + clippy (with fixes): `cargo xtask tidy`
 
 ## Experimental curves
 - Experimental patterns (currently Hairy Onion) are hidden in the GUI by default.
@@ -29,8 +29,8 @@ Handy for styling checks: run the command above and view the PNG (e.g., with the
 - The helper `egui_img::view_image_with_screenshot` renders one frame, saves the PNG, then closes.
 
 ## Deployment (Web)
-1) `uv run ./scripts/build_web.py`
-2) Serve `dist/` via HTTP (`uv run ./scripts/serve_dist.py 8000` or any static server).
+1) `cargo xtask web build`
+2) Serve `dist/` via HTTP (`cargo xtask web serve-dist 8000` or any static server).
 3) Files: `index.html`, `scurve-web.js`, `scurve-web_bg.wasm`.
 
 ## README snippets
@@ -46,5 +46,4 @@ Then run:
 ```sh
 snips ./README.md
 ```
-
 

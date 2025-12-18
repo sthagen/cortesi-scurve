@@ -38,7 +38,7 @@
 
     <div class="loading" id="loading">Loading...</div>
     
-    <!-- Development loader: served by wasm-server-runner via scripts/serve_web.py -->
+    <!-- Development loader: served by wasm-server-runner via `cargo xtask web serve` -->
     <script type="module">
         import init from '/api/wasm.js';
         init('/api/wasm.wasm').then(() => {

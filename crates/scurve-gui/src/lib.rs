@@ -46,6 +46,7 @@ pub struct ScreenshotConfig {
 }
 
 #[derive(Debug)]
+/// Runtime state for screenshot capture requests.
 struct ActiveScreenshot {
     /// Destination path for the PNG output.
     output_path: PathBuf,

@@ -29,12 +29,12 @@ scurve_gui::gui()?;
 ### Web Application
 1. **Install required tools (run from the repository root):**
    ```bash
-   uv run ./scripts/setup_web.py
+   cargo xtask web setup
    ```
 
 2. **Run development server (run from the repository root):**
    ```bash
-   uv run ./scripts/serve_web.py
+   cargo xtask web serve
    ```
 
    Open `http://127.0.0.1:1334` in your browser (uses wasm-server-runner).
@@ -44,18 +44,9 @@ scurve_gui::gui()?;
 ### Core Dependencies
 - **spacecurve** - Space-filling curve generation algorithms
 - **anyhow** - Error handling
-- **bevy 0.16.1** - Game engine with excellent cross-platform support
-- **bevy_egui 0.35.1** - Immediate mode GUI integration
+- **egui / eframe** - GUI framework
 - **getrandom 0.3** - Random number generation with WASM support
-
-### Native-only Dependencies
-- **clap** - Command-line argument parsing
-- **memmap2** - Memory-mapped file I/O
-- **palette** - Color manipulation
-- **image** - Image processing
-- **piston_window** - Alternative windowing backend
-- **rand** - Random number generation
-- **pbr** - Progress bar utilities
+- **egui_commonmark** - Markdown rendering for egui
 
 ### Web-specific Dependencies
 - **wasm-bindgen** - Rust/JavaScript interop
@@ -64,25 +55,16 @@ scurve_gui::gui()?;
 ## Project Structure
 
 ```
-crates/scurve/
+crates/scurve-gui/
 ├── src/
-│   ├── main.rs          # Native CLI binary
-│   ├── web.rs           # Web-only binary (GUI only)
-│   ├── cmd.rs           # Command-line interface
 │   ├── lib.rs           # Library exports
-│   └── gui/             # Shared GUI module
-│       ├── mod.rs       # GUI module exports
-│       ├── threed.rs    # 3D visualization
-│       ├── twod.rs      # 2D visualization
-│       └── widgets.rs   # UI widgets
+│   └── web.rs           # Web-only binary (GUI only)
 ├── assets/              # Web assets
 │   └── index.html       # Web page template
-├── .cargo/
-│   └── config.toml      # WASM build configuration & aliases
 ├── index.html           # Symlink to assets/index.html
-├── scripts/setup_web.py # Tool installation script
+├── tests/               # Integration tests (including wasm build coverage)
+│   └── web_build.rs
 ├── README.md            # This file
-└── DEV.md               # Development guide
 ```
 
 ## Build Targets
@@ -101,7 +83,7 @@ The crate supports multiple build targets:
 
 ### Web
 - Rust toolchain with `wasm32-unknown-unknown` target
-- wasm-server-runner for development (installed by setup script)
+- wasm-server-runner for development (installed by `cargo xtask web setup`)
 - Modern web browser with WebGL2 support
 
 ## Browser Compatibility

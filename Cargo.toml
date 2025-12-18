@@ -49,7 +49,7 @@ egui-img = { path = "crates/egui-img", version = "0.1.5" }
 
 [workspace]
 resolver = "2"
-members = [ "crates/*" ]
+members = [ "crates/*", "xtask" ]
 
 # Optimization profiles for web builds
 [profile.wasm-release]
