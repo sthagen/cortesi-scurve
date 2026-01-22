@@ -45,7 +45,6 @@ scurve_gui::gui()?;
 - **spacecurve** - Space-filling curve generation algorithms
 - **anyhow** - Error handling
 - **egui / eframe** - GUI framework
-- **getrandom 0.3** - Random number generation with WASM support
 - **egui_commonmark** - Markdown rendering for egui
 
 ### Web-specific Dependencies

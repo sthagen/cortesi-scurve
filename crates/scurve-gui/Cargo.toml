@@ -31,7 +31,6 @@ __screenshot = ["eframe/__screenshot"]
 [dependencies]
 spacecurve.workspace = true
 anyhow = "1.0"
-getrandom = { version = "0.3", features = ["wasm_js"] }
 egui = "0.33"
 eframe = "0.33"
 egui_commonmark = "0.22"

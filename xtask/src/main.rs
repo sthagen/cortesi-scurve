@@ -35,6 +35,8 @@ struct Cli {
 enum CommandName {
     /// Format the workspace and run the linter.
     Tidy,
+    /// Run tests using cargo nextest.
+    Test,
     /// Web build and serve tasks.
     #[command(subcommand)]
     Web(WebCommand),
@@ -110,6 +112,7 @@ fn run() -> Result<()> {
 
     match cli.command {
         CommandName::Tidy => tidy(&paths),
+        CommandName::Test => test(&paths),
         CommandName::Web(cmd) => match cmd {
             WebCommand::Setup => web_setup(&paths),
             WebCommand::Serve => web_serve(&paths),
@@ -124,6 +127,13 @@ fn tidy(paths: &RepoPaths) -> Result<()> {
     format_workspace(paths)?;
     lint_workspace(paths)?;
     format_workspace(paths)?;
+    Ok(())
+}
+
+/// Run tests using cargo nextest.
+fn test(paths: &RepoPaths) -> Result<()> {
+    let sh = repo_shell(paths)?;
+    cmd!(sh, "cargo nextest run --all").run()?;
     Ok(())
 }
 

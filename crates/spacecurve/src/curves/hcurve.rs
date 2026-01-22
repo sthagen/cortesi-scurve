@@ -8,8 +8,9 @@ Cyclic space-filling curves and their clustering property, Igor V. Netay.
 The original C implementation by Netay contained an error in Grey/InvGrey usage
 for D>=3, leading to discontinuities, which is fixed here.
 */
-use crate::{error, ops, point, spacecurve::SpaceCurve, spec::GridSpec};
 use smallvec::SmallVec;
+
+use crate::{error, ops, point, spacecurve::SpaceCurve, spec::GridSpec};
 
 // Convention used in low-level functions:
 // d: Dimension
