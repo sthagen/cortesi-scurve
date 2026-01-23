@@ -304,6 +304,15 @@ pub mod canvas_3d {
 
     /// Base line width for curve segments.
     pub const BASE_LINE_WIDTH: f32 = 2.0;
+
+    /// Radius of the glowing head marker at the curve start.
+    pub const HEAD_MARKER_RADIUS: f32 = 5.0;
+
+    /// Radius of the outer glow around the head marker.
+    pub const HEAD_MARKER_GLOW_RADIUS: f32 = 10.0;
+
+    /// Alpha for the outer glow of the head marker.
+    pub const HEAD_MARKER_GLOW_ALPHA: u8 = 80;
 }
 
 // =============================================================================
@@ -351,6 +360,37 @@ pub fn snake_color_with_brightness(brightness: f32) -> Color32 {
         (accent_color::R as f32 * brightness) as u8,
         (accent_color::G as f32 * brightness) as u8,
         (accent_color::B as f32 * brightness) as u8,
+    )
+}
+
+/// Create a lighter "glow" version of the curve color.
+///
+/// Blends the curve color toward white for a glowing/bloom effect.
+#[inline]
+pub fn curve_glow_color(brightness: f32) -> Color32 {
+    let glow_blend = 0.6; // 60% blend toward white
+    let r = curve_color::R as f32 * brightness;
+    let g = curve_color::G as f32 * brightness;
+    let b = curve_color::B as f32 * brightness;
+    Color32::from_rgb(
+        (r + (255.0 - r) * glow_blend) as u8,
+        (g + (255.0 - g) * glow_blend) as u8,
+        (b + (255.0 - b) * glow_blend) as u8,
+    )
+}
+
+/// Create a lighter "glow" version of the curve color with alpha.
+#[inline]
+pub fn curve_glow_color_alpha(brightness: f32, alpha: u8) -> Color32 {
+    let glow_blend = 0.6;
+    let r = curve_color::R as f32 * brightness;
+    let g = curve_color::G as f32 * brightness;
+    let b = curve_color::B as f32 * brightness;
+    Color32::from_rgba_unmultiplied(
+        (r + (255.0 - r) * glow_blend) as u8,
+        (g + (255.0 - g) * glow_blend) as u8,
+        (b + (255.0 - b) * glow_blend) as u8,
+        alpha,
     )
 }
 

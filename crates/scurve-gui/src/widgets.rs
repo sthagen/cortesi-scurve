@@ -434,7 +434,12 @@ fn settings_panel_content(
         };
     }
 
-    neon_checkbox(ui, &mut shared.show_long_jumps, "Long jumps");
+    ui.add_space(theme::spacing::MEDIUM - 2.0);
+    ui.add(egui::Separator::default().spacing(theme::spacing::SMALL));
+
+    section_header(ui, "Long Jumps");
+    neon_checkbox(ui, &mut shared.curve_long_jumps, "Show on curve");
+    neon_checkbox(ui, &mut shared.snake_long_jumps, "Show on snake");
 
     ui.add_space(theme::spacing::MEDIUM - 2.0);
     ui.add(egui::Separator::default().spacing(theme::spacing::SMALL));

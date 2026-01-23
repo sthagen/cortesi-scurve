@@ -91,8 +91,10 @@ use twod::show_2d_pane;
 pub struct SharedSettings {
     /// Opacity of the main curve rendering (0.0–1.0).
     pub curve_opacity: f32,
-    /// Whether to draw long-jump segments in the curve.
-    pub show_long_jumps: bool,
+    /// Whether to draw long-jump segments in the main curve.
+    pub curve_long_jumps: bool,
+    /// Whether to draw long-jump segments in the snake overlay.
+    pub snake_long_jumps: bool,
     /// Enable the animated snake overlay.
     pub snake_enabled: bool,
     /// Snake length as a percentage of curve length (0–50).
@@ -107,7 +109,8 @@ impl Default for SharedSettings {
     fn default() -> Self {
         Self {
             curve_opacity: 0.35, // Default to 35% opacity
-            show_long_jumps: false,
+            curve_long_jumps: false,
+            snake_long_jumps: false,
             snake_enabled: true,
             snake_length: 5.0, // Default to 5% of curve length
             snake_speed: 30.0, // Default snake speed (segments per second)

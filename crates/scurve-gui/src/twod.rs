@@ -7,8 +7,8 @@ use super::widgets;
 use crate::{
     AppState,
     selection::SelectedCurve,
-    snake::{fill_snake_segments, is_adjacent_2d, snake_mask_contains, snake_membership_mask},
-    theme,
+    snake::{fill_snake_segments, is_adjacent_2d, snake_membership_mask},
+    theme::{self, curve_glow_color, curve_glow_color_alpha},
 };
 
 /// Render the 2D pane, including controls and the curve canvas.
@@ -121,12 +121,72 @@ fn draw_2d_canvas(
                 screen_points,
                 line_width,
                 line_color,
-                shared_settings.show_long_jumps,
+                shared_settings.curve_long_jumps,
                 &mut app_state.cache_2d_run,
             );
         }
 
         if shared_settings.snake_enabled && curve_points.len() > 1 {
+            let curve_len = curve_points.len() as f32;
+            let snake_len = ((shared_settings.snake_length / 100.0) * curve_len)
+                .round()
+                .max(1.0);
+
+            // Calculate interpolated tail position
+            // When we snap for a long jump, we update both segment and frac to the snapped position
+            let tail_pos = snake_offset % curve_len;
+            let raw_tail_segment = tail_pos.floor() as usize % curve_points.len();
+            let raw_tail_frac = tail_pos.fract();
+            let tail_next = (raw_tail_segment + 1) % curve_points.len();
+            let tail_adjacent =
+                is_adjacent_2d(&curve_points[raw_tail_segment], &curve_points[tail_next]);
+
+            // Effective tail position: either interpolated or snapped to next point
+            // When on a long jump with snake_long_jumps=false, skip to the end of the segment
+            let (tail_segment, tail_frac, tail_screen) =
+                if !tail_adjacent && !shared_settings.snake_long_jumps {
+                    // Long jump with snake_long_jumps=false: snap to END of segment
+                    (tail_next, 0.0, screen_points[tail_next])
+                } else if raw_tail_frac > 0.0 {
+                    // Smooth interpolation
+                    let p1 = screen_points[raw_tail_segment];
+                    let p2 = screen_points[tail_next];
+                    let interp = egui::pos2(
+                        p1.x + (p2.x - p1.x) * raw_tail_frac,
+                        p1.y + (p2.y - p1.y) * raw_tail_frac,
+                    );
+                    (raw_tail_segment, raw_tail_frac, interp)
+                } else {
+                    (raw_tail_segment, 0.0, screen_points[raw_tail_segment])
+                };
+
+            // Calculate interpolated head position
+            let head_pos = (snake_offset + snake_len) % curve_len;
+            let raw_head_segment = head_pos.floor() as usize % curve_points.len();
+            let raw_head_frac = head_pos.fract();
+            let head_next = (raw_head_segment + 1) % curve_points.len();
+            let head_adjacent =
+                is_adjacent_2d(&curve_points[raw_head_segment], &curve_points[head_next]);
+
+            // Effective head position: either interpolated or snapped to next point
+            // When on a long jump with snake_long_jumps=false, skip to the end of the segment
+            let (head_segment, head_frac, head_screen) =
+                if !head_adjacent && !shared_settings.snake_long_jumps {
+                    // Long jump with snake_long_jumps=false: snap to END of segment
+                    (head_next, 0.0, screen_points[head_next])
+                } else if raw_head_frac > 0.0 {
+                    // Smooth interpolation
+                    let p1 = screen_points[raw_head_segment];
+                    let p2 = screen_points[head_next];
+                    let interp = egui::pos2(
+                        p1.x + (p2.x - p1.x) * raw_head_frac,
+                        p1.y + (p2.y - p1.y) * raw_head_frac,
+                    );
+                    (raw_head_segment, raw_head_frac, interp)
+                } else {
+                    (raw_head_segment, 0.0, screen_points[raw_head_segment])
+                };
+
             fill_snake_segments(
                 &mut app_state.snake_segments_2d,
                 snake_offset,
@@ -135,7 +195,7 @@ fn draw_2d_canvas(
             );
             let snake_segments = &app_state.snake_segments_2d;
 
-            let snake_mask: &[bool] = if shared_settings.show_long_jumps {
+            let snake_mask: &[bool] = if shared_settings.snake_long_jumps {
                 &[]
             } else {
                 snake_membership_mask(
@@ -156,9 +216,18 @@ fn draw_2d_canvas(
                 snake_segments,
                 snake_mask,
                 snake_stroke,
-                shared_settings.show_long_jumps,
+                shared_settings.snake_long_jumps,
                 &mut app_state.cache_2d_run,
+                tail_segment,
+                tail_frac,
+                tail_screen,
+                head_segment,
+                head_frac,
+                head_screen,
             );
+
+            // Draw glowing head marker at the front of the snake
+            draw_head_marker_at(&painter, head_screen);
         }
     }
 
@@ -249,89 +318,154 @@ fn draw_main_curve_segments(
     }
 }
 
-/// Draw the animated snake overlay, honoring long‑jump visibility.
-#[allow(clippy::too_many_arguments)]
+/// Draw the animated snake overlay with smooth interpolation at tail and head.
+///
+/// The snake path is built from `tail_screen` to `head_screen`, including all
+/// intermediate integer points. This ensures smooth motion as the fractional
+/// parts of tail and head advance.
+#[allow(clippy::too_many_arguments, clippy::cognitive_complexity)]
 fn draw_snake_overlay(
     painter: &egui::Painter,
     curve_points: &[[u32; 2]],
     screen_points: &[egui::Pos2],
-    snake_segments: &[usize],
-    snake_mask: &[bool],
+    _snake_segments: &[usize],
+    _snake_mask: &[bool],
     snake_stroke: Stroke,
     show_long_jumps: bool,
     current_run: &mut Vec<egui::Pos2>,
+    tail_segment: usize,
+    tail_frac: f32,
+    tail_screen: egui::Pos2,
+    head_segment: usize,
+    head_frac: f32,
+    head_screen: egui::Pos2,
 ) {
-    if show_long_jumps {
-        let mut snake_path = Vec::new();
-        for &i in snake_segments {
-            if i < screen_points.len() {
-                snake_path.push(screen_points[i]);
-            }
+    let n = curve_points.len();
+    if n < 2 {
+        return;
+    }
+
+    // Build the list of integer point indices from tail to head.
+    // The path goes: tail_screen -> point[first_int] -> ... -> point[last_int] -> head_screen
+    // where first_int is the first integer point AFTER the tail interpolation position
+    // and last_int is the last integer point BEFORE the head interpolation position.
+    let first_int = if tail_frac > 0.0 {
+        (tail_segment + 1) % n
+    } else {
+        tail_segment
+    };
+    let last_int = head_segment;
+
+    // Collect all integer point indices from first_int to last_int (inclusive)
+    let mut int_points: Vec<usize> = Vec::new();
+    if first_int <= last_int {
+        // No wrap-around
+        for i in first_int..=last_int {
+            int_points.push(i);
         }
+    } else {
+        // Wrap-around case: e.g., tail at index 62, head at index 3 (out of 64)
+        for i in first_int..n {
+            int_points.push(i);
+        }
+        for i in 0..=last_int {
+            int_points.push(i);
+        }
+    }
+
+    if show_long_jumps {
+        // Build single continuous path
+        let mut snake_path = Vec::with_capacity(int_points.len() + 2);
+
+        // Start with interpolated tail (if it's not exactly at an integer point)
+        if tail_frac > 0.0 {
+            snake_path.push(tail_screen);
+        }
+
+        // Add all integer points
+        for &i in &int_points {
+            snake_path.push(screen_points[i]);
+        }
+
+        // End with interpolated head (if it's not exactly at an integer point)
+        if head_frac > 0.0 {
+            snake_path.push(head_screen);
+        }
+
         if snake_path.len() >= 2 {
             painter.add(PathShape::line(snake_path, snake_stroke));
         }
         return;
     }
 
+    // For show_long_jumps=false, build runs of adjacent segments
     current_run.clear();
-    for &i in snake_segments {
-        if i >= curve_points.len() {
-            continue;
+
+    // Start the path
+    if tail_frac > 0.0 {
+        // Check if tail segment is adjacent (for interpolation decision)
+        let tail_next = (tail_segment + 1) % n;
+        let tail_adjacent = is_adjacent_2d(&curve_points[tail_segment], &curve_points[tail_next]);
+        if tail_adjacent {
+            current_run.push(tail_screen);
         }
-        let has_prev = i > 0
-            && snake_mask_contains(snake_mask, i - 1)
-            && is_adjacent_2d(&curve_points[i - 1], &curve_points[i]);
-        let has_next = i < curve_points.len() - 1
-            && snake_mask_contains(snake_mask, i + 1)
-            && is_adjacent_2d(&curve_points[i], &curve_points[i + 1]);
-        if !has_prev && !has_next {
-            // Isolated point handled below
-        } else if !has_prev {
-            current_run.clear();
-            current_run.push(screen_points[i]);
-        } else if has_prev && !current_run.is_empty() {
-            current_run.push(screen_points[i]);
-            if !has_next {
-                if current_run.len() >= 2 {
-                    painter.add(PathShape::line(current_run.clone(), snake_stroke));
-                }
-                current_run.clear();
+        // If not adjacent, we'll start fresh at the first integer point
+    }
+
+    // Process all integer points
+    for (idx, &i) in int_points.iter().enumerate() {
+        let prev_i = if idx == 0 {
+            if tail_frac > 0.0 {
+                Some(tail_segment)
+            } else {
+                None
             }
+        } else {
+            Some(int_points[idx - 1])
+        };
+
+        let is_adjacent_to_prev =
+            prev_i.is_some_and(|p| is_adjacent_2d(&curve_points[p], &curve_points[i]));
+
+        if !is_adjacent_to_prev && !current_run.is_empty() {
+            // End current run and start a new one
+            if current_run.len() >= 2 {
+                painter.add(PathShape::line(current_run.clone(), snake_stroke));
+            }
+            current_run.clear();
+        }
+
+        current_run.push(screen_points[i]);
+    }
+
+    // Finish with interpolated head
+    if head_frac > 0.0 {
+        let head_next = (head_segment + 1) % n;
+        let head_adjacent = is_adjacent_2d(&curve_points[head_segment], &curve_points[head_next]);
+        if head_adjacent && !current_run.is_empty() {
+            current_run.push(head_screen);
+        } else if !current_run.is_empty() {
+            // Non-adjacent: end run at head_segment, don't add interpolated point
         }
     }
+
+    // Draw final run
     if current_run.len() >= 2 {
         painter.add(PathShape::line(current_run.clone(), snake_stroke));
     }
+}
 
-    for &i in snake_segments {
-        if i >= curve_points.len() {
-            continue;
-        }
-        let has_prev = i > 0
-            && snake_mask_contains(snake_mask, i - 1)
-            && is_adjacent_2d(&curve_points[i - 1], &curve_points[i]);
-        let has_next = i < curve_points.len() - 1
-            && snake_mask_contains(snake_mask, i + 1)
-            && is_adjacent_2d(&curve_points[i], &curve_points[i + 1]);
-        if !has_prev && !has_next {
-            let current_pos = screen_points[i];
-            let segment_end = if i == curve_points.len() - 1 && i > 0 {
-                let prev_pos = screen_points[i - 1];
-                egui::Pos2 {
-                    x: current_pos.x + (current_pos.x - prev_pos.x) * 0.5,
-                    y: current_pos.y + (current_pos.y - prev_pos.y) * 0.5,
-                }
-            } else if i < curve_points.len() - 1 {
-                let next_pos = screen_points[i + 1];
-                egui::Pos2 {
-                    x: current_pos.x + (next_pos.x - current_pos.x) * 0.5,
-                    y: current_pos.y + (next_pos.y - current_pos.y) * 0.5,
-                }
-            } else {
-                continue;
-            };
-            painter.line_segment([current_pos, segment_end], snake_stroke);
-        }
-    }
+/// Draw a glowing marker at the given screen position.
+fn draw_head_marker_at(painter: &egui::Painter, pos: egui::Pos2) {
+    let brightness = 1.0; // Full brightness in 2D (no depth)
+
+    // Draw outer glow (larger, semi-transparent)
+    let glow_radius = theme::canvas_3d::HEAD_MARKER_GLOW_RADIUS * (0.7 + 0.3 * brightness);
+    let glow_color = curve_glow_color_alpha(brightness, theme::canvas_3d::HEAD_MARKER_GLOW_ALPHA);
+    painter.circle_filled(pos, glow_radius, glow_color);
+
+    // Draw inner core (smaller, solid)
+    let core_radius = theme::canvas_3d::HEAD_MARKER_RADIUS * (0.7 + 0.3 * brightness);
+    let core_color = curve_glow_color(brightness);
+    painter.circle_filled(pos, core_radius, core_color);
 }
