@@ -133,6 +133,20 @@ fn show_about_area(
                                                 .size(theme::font_size::LABEL)
                                                 .color(theme::TEXT_SECONDARY),
                                         ));
+                                        ui.add_space(2.0);
+                                        ui.horizontal(|ui| {
+                                            ui.label(
+                                                egui::RichText::new("by")
+                                                    .size(theme::font_size::INFO)
+                                                    .color(theme::TEXT_DIM),
+                                            );
+                                            ui.hyperlink_to(
+                                                egui::RichText::new("Aldo Cortesi")
+                                                    .size(theme::font_size::INFO)
+                                                    .color(theme::TEXT_LINK),
+                                                "https://corte.si",
+                                            );
+                                        });
                                     });
 
                                     ui.with_layout(
@@ -173,23 +187,9 @@ const ABOUT_CONTENT_BODY: &str = r#"
 
 This interactive playground lets you explore various **space-filling curves** in both 2D and 3D. Space-filling curves are continuous paths that visit every point in a space, providing fascinating mathematical and practical properties.
 
-### Features
-
-- **Interactive Visualization**: Explore curves in real-time with smooth animations
-- **Multiple Curve Types**: Browse through different curve algorithms including:
-  - Hilbert curves
-  - Z-order (Morton) curves  
-  - Gray codes
-  - H-curves
-  - And more exotic patterns!
-  
-- **2D and 3D Views**: Switch between dimensions to see how curves behave
-- **Snake Animation**: Watch the curves being traced with configurable speed and length
-- **Customizable Display**: Adjust opacity, rotation speed, and visual settings
-
 ---
 
-*Built with Rust, egui, and a passion for beautiful mathematics.*
+*Built with Rust & egui.*
 "#;
 
 /// Markdown content buffer built once for the About dialog.
