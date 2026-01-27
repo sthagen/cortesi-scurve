@@ -121,6 +121,7 @@ struct SnakeDraw {
 pub fn show_3d_pane(
     ui: &mut egui::Ui,
     app_state: &mut AppState,
+    render_cache: &mut crate::RenderCache,
     selected_3d_curve: &mut Selected3DCurve,
     available_curves: &[&str],
     shared_settings: &mut crate::SharedSettings,
@@ -180,7 +181,7 @@ pub fn show_3d_pane(
     ui.separator();
 
     let available_rect = ui.available_rect_before_wrap();
-    app_state.last_canvas_rect = Some(available_rect);
+    render_cache.last_canvas_rect = Some(available_rect);
     let bg = theme::CANVAS_BACKGROUND;
     let painter = ui.painter_at(available_rect);
     painter.rect_filled(available_rect, 0.0, bg);
@@ -194,6 +195,7 @@ pub fn show_3d_pane(
             &painter,
             available_rect,
             app_state,
+            render_cache,
             shared_settings,
             points3d,
             curve_size,
@@ -227,10 +229,12 @@ pub fn show_3d_pane(
 }
 
 /// Render the 3D curve and overlays into the given rect.
+#[allow(clippy::too_many_arguments)]
 fn draw_3d_space_curve(
     painter: &egui::Painter,
     rect: egui::Rect,
-    app_state: &mut AppState,
+    app_state: &AppState,
+    render_cache: &mut crate::RenderCache,
     shared_settings: &crate::SharedSettings,
     original_curve_points: &[[u32; 3]],
     curve_size: u32,
@@ -258,30 +262,33 @@ fn draw_3d_space_curve(
         rotation_y,
         center,
         scale,
-        &mut app_state.cache_3d_points,
-        &mut app_state.cache_3d_screen,
+        &mut render_cache.cache_3d_points,
+        &mut render_cache.cache_3d_screen,
     );
 
-    compute_connected(original_curve_points, &mut app_state.cache_connected);
-    compute_shorten_caps(&app_state.cache_connected, &mut app_state.cache_caps);
+    compute_connected(original_curve_points, &mut render_cache.cache_connected);
+    compute_shorten_caps(
+        &render_cache.cache_connected,
+        &mut render_cache.cache_caps,
+    );
     build_segment_depths(
-        &app_state.cache_3d_points,
-        &app_state.cache_connected,
+        &render_cache.cache_3d_points,
+        &render_cache.cache_connected,
         shared_settings.curve_long_jumps,
-        &mut app_state.cache_depths,
+        &mut render_cache.cache_depths,
     );
 
     // Sorted by depth binning inside draw_curve_segments
     draw_curve_segments(
         painter,
-        &app_state.cache_3d_screen,
-        &app_state.cache_depths,
-        &app_state.cache_caps,
+        &render_cache.cache_3d_screen,
+        &render_cache.cache_depths,
+        &render_cache.cache_caps,
         shared_settings.curve_opacity,
-        &mut app_state.cache_bins,
+        &mut render_cache.cache_bins,
     );
 
-    if shared_settings.snake_enabled && app_state.cache_3d_screen.len() > 1 {
+    if shared_settings.snake_enabled && render_cache.cache_3d_screen.len() > 1 {
         let curve_len = original_curve_points.len() as f32;
         let snake_len = ((shared_settings.snake_length / 100.0) * curve_len)
             .round()
@@ -307,15 +314,15 @@ fn draw_3d_space_curve(
                 (
                     tail_next,
                     0.0,
-                    app_state.cache_3d_screen[tail_next],
-                    app_state.cache_3d_points[tail_next][2],
+                    render_cache.cache_3d_screen[tail_next],
+                    render_cache.cache_3d_points[tail_next][2],
                 )
             } else if raw_tail_frac > 0.0 {
                 // Smooth interpolation
-                let p1 = app_state.cache_3d_screen[raw_tail_segment];
-                let p2 = app_state.cache_3d_screen[tail_next];
-                let d1 = app_state.cache_3d_points[raw_tail_segment][2];
-                let d2 = app_state.cache_3d_points[tail_next][2];
+                let p1 = render_cache.cache_3d_screen[raw_tail_segment];
+                let p2 = render_cache.cache_3d_screen[tail_next];
+                let d1 = render_cache.cache_3d_points[raw_tail_segment][2];
+                let d2 = render_cache.cache_3d_points[tail_next][2];
                 let interp = egui::pos2(
                     p1.x + (p2.x - p1.x) * raw_tail_frac,
                     p1.y + (p2.y - p1.y) * raw_tail_frac,
@@ -326,8 +333,8 @@ fn draw_3d_space_curve(
                 (
                     raw_tail_segment,
                     0.0,
-                    app_state.cache_3d_screen[raw_tail_segment],
-                    app_state.cache_3d_points[raw_tail_segment][2],
+                    render_cache.cache_3d_screen[raw_tail_segment],
+                    render_cache.cache_3d_points[raw_tail_segment][2],
                 )
             };
 
@@ -350,15 +357,15 @@ fn draw_3d_space_curve(
                 (
                     head_next,
                     0.0,
-                    app_state.cache_3d_screen[head_next],
-                    app_state.cache_3d_points[head_next][2],
+                    render_cache.cache_3d_screen[head_next],
+                    render_cache.cache_3d_points[head_next][2],
                 )
             } else if raw_head_frac > 0.0 {
                 // Smooth interpolation
-                let p1 = app_state.cache_3d_screen[raw_head_segment];
-                let p2 = app_state.cache_3d_screen[head_next];
-                let d1 = app_state.cache_3d_points[raw_head_segment][2];
-                let d2 = app_state.cache_3d_points[head_next][2];
+                let p1 = render_cache.cache_3d_screen[raw_head_segment];
+                let p2 = render_cache.cache_3d_screen[head_next];
+                let d1 = render_cache.cache_3d_points[raw_head_segment][2];
+                let d2 = render_cache.cache_3d_points[head_next][2];
                 let interp = egui::pos2(
                     p1.x + (p2.x - p1.x) * raw_head_frac,
                     p1.y + (p2.y - p1.y) * raw_head_frac,
@@ -369,40 +376,40 @@ fn draw_3d_space_curve(
                 (
                     raw_head_segment,
                     0.0,
-                    app_state.cache_3d_screen[raw_head_segment],
-                    app_state.cache_3d_points[raw_head_segment][2],
+                    render_cache.cache_3d_screen[raw_head_segment],
+                    render_cache.cache_3d_points[raw_head_segment][2],
                 )
             };
 
         fill_snake_segments(
-            &mut app_state.snake_segments_3d,
+            &mut render_cache.snake_segments_3d,
             snake_offset,
             shared_settings.snake_length,
             original_curve_points.len() as u32,
         );
-        let snake_segments = &app_state.snake_segments_3d;
+        let snake_segments = &render_cache.snake_segments_3d;
 
         let snake_mask: &[bool] = if shared_settings.snake_long_jumps {
             &[]
         } else {
             snake_membership_mask(
                 snake_segments,
-                app_state.cache_3d_screen.len(),
-                &mut app_state.snake_mask_3d,
+                render_cache.cache_3d_screen.len(),
+                &mut render_cache.snake_mask_3d,
             )
         };
         let snake_included = snake_included_mask(
             snake_segments,
-            &app_state.cache_connected,
+            &render_cache.cache_connected,
             shared_settings.snake_long_jumps,
-            &mut app_state.snake_included_3d,
+            &mut render_cache.snake_included_3d,
         );
         let draws = collect_snake_draws(
-            &app_state.cache_3d_screen,
-            &app_state.cache_3d_points,
-            &app_state.cache_connected,
+            &render_cache.cache_3d_screen,
+            &render_cache.cache_3d_points,
+            &render_cache.cache_connected,
             snake_included,
-            &app_state.cache_caps,
+            &render_cache.cache_caps,
             snake_segments,
             shared_settings.snake_long_jumps,
             tail_segment,
@@ -415,14 +422,14 @@ fn draw_3d_space_curve(
             head_depth,
         );
         // Sorted by depth binning inside draw_snake_draws
-        draw_snake_draws(painter, &draws, &mut app_state.cache_bins);
+        draw_snake_draws(painter, &draws, &mut render_cache.cache_bins);
 
         if !shared_settings.snake_long_jumps {
             draw_isolated_snake_points(
                 painter,
                 original_curve_points,
-                &app_state.cache_3d_screen,
-                &app_state.cache_3d_points,
+                &render_cache.cache_3d_screen,
+                &render_cache.cache_3d_points,
                 snake_segments,
                 snake_mask,
             );
@@ -436,8 +443,8 @@ fn draw_3d_space_curve(
         draw_isolated_points(
             painter,
             original_curve_points,
-            &app_state.cache_3d_screen,
-            &app_state.cache_3d_points,
+            &render_cache.cache_3d_screen,
+            &render_cache.cache_3d_points,
         );
     }
 }

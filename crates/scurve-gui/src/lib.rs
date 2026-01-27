@@ -135,16 +135,6 @@ pub struct AppState {
     pub last_mouse_x: f32,
     /// Accumulated time used to advance the snake animation.
     pub snake_time: f32,
-    /// Reusable buffer for 2D snake segment indices.
-    pub snake_segments_2d: Vec<usize>,
-    /// Reusable buffer for 3D snake segment indices.
-    pub snake_segments_3d: Vec<usize>,
-    /// Reusable membership mask for 2D snake lookups.
-    pub snake_mask_2d: Vec<bool>,
-    /// Reusable membership mask for 3D snake lookups.
-    pub snake_mask_3d: Vec<bool>,
-    /// Reusable inclusion mask for visible 3D snake segments.
-    pub snake_included_3d: Vec<bool>,
     /// Whether the settings dropdown is currently open.
     pub settings_dropdown_open: bool,
     /// Persisted position for the settings dropdown to avoid frame-to-frame jitter.
@@ -157,6 +147,40 @@ pub struct AppState {
     pub frame_time_display_ms: Option<f32>,
     /// Last time (seconds) the display value was latched.
     pub frame_time_last_display_s: Option<f64>,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            current_pane: Pane::TwoD,
+            animation_time: 0.0,
+            paused: false,
+            rotation_angle: 0.0,
+            mouse_dragging: false,
+            last_mouse_x: 0.0,
+            snake_time: 0.0,
+            settings_dropdown_open: false,
+            settings_dropdown_pos: None,
+            about_open: false,
+            frame_time_ms: None,
+            frame_time_display_ms: None,
+            frame_time_last_display_s: None,
+        }
+    }
+}
+
+/// Transient rendering buffers and cache state.
+pub struct RenderCache {
+    /// Reusable buffer for 2D snake segment indices.
+    pub snake_segments_2d: Vec<usize>,
+    /// Reusable buffer for 3D snake segment indices.
+    pub snake_segments_3d: Vec<usize>,
+    /// Reusable membership mask for 2D snake lookups.
+    pub snake_mask_2d: Vec<bool>,
+    /// Reusable membership mask for 3D snake lookups.
+    pub snake_mask_3d: Vec<bool>,
+    /// Reusable inclusion mask for visible 3D snake segments.
+    pub snake_included_3d: Vec<bool>,
     /// Latest canvas rect for positioning overlays relative to the view.
     pub last_canvas_rect: Option<egui::Rect>,
     /// Reusable buffer for 3D rendering (projected points).
@@ -177,27 +201,14 @@ pub struct AppState {
     pub cache_bins: Vec<Vec<usize>>,
 }
 
-impl Default for AppState {
+impl Default for RenderCache {
     fn default() -> Self {
         Self {
-            current_pane: Pane::TwoD,
-            animation_time: 0.0,
-            paused: false,
-            rotation_angle: 0.0,
-            mouse_dragging: false,
-            last_mouse_x: 0.0,
-            snake_time: 0.0,
             snake_segments_2d: Vec::new(),
             snake_segments_3d: Vec::new(),
             snake_mask_2d: Vec::new(),
             snake_mask_3d: Vec::new(),
             snake_included_3d: Vec::new(),
-            settings_dropdown_open: false,
-            settings_dropdown_pos: None,
-            about_open: false,
-            frame_time_ms: None,
-            frame_time_display_ms: None,
-            frame_time_last_display_s: None,
             last_canvas_rect: None,
             cache_3d_points: Vec::new(),
             cache_3d_screen: Vec::new(),
@@ -221,6 +232,8 @@ pub struct ScurveApp {
     available_curves: Vec<&'static str>,
     /// Mutable app state shared across panes.
     app_state: AppState,
+    /// Transient rendering caches.
+    render_cache: RenderCache,
     /// Settings shared between panes.
     shared_settings: SharedSettings,
     /// Active screenshot request state (when running in screenshot mode).
@@ -271,6 +284,7 @@ impl ScurveApp {
             .unwrap_or(registry::CURVE_NAMES[0]);
 
         let mut app_state = AppState::default();
+        let render_cache = RenderCache::default();
         let screenshot_config = options.screenshot;
         let mut screenshot_runtime = screenshot_config.as_ref().map(|cfg| ActiveScreenshot {
             output_path: cfg.output_path.clone(),
@@ -308,6 +322,7 @@ impl ScurveApp {
             selected_3d_curve: Selected3DCurve::with_name(default_curve),
             available_curves,
             app_state,
+            render_cache,
             shared_settings: Default::default(),
             screenshot: screenshot_runtime.take(),
             last_time: None,
@@ -449,7 +464,7 @@ impl ScurveApp {
         };
         let fps = if ms > 0.0 { 1000.0 / ms } else { 0.0 };
 
-        let pos = if let Some(rect) = self.app_state.last_canvas_rect {
+        let pos = if let Some(rect) = self.render_cache.last_canvas_rect {
             egui::pos2(rect.max.x - 12.0, rect.min.y + 12.0)
         } else {
             // Fallback to top-right of the window if no canvas was drawn yet
@@ -528,6 +543,7 @@ impl eframe::App for ScurveApp {
                 show_2d_pane(
                     ui,
                     &mut self.app_state,
+                    &mut self.render_cache,
                     &mut self.selected_curve,
                     &self.available_curves,
                     &mut self.shared_settings,
@@ -537,6 +553,7 @@ impl eframe::App for ScurveApp {
                 show_3d_pane(
                     ui,
                     &mut self.app_state,
+                    &mut self.render_cache,
                     &mut self.selected_3d_curve,
                     &self.available_curves,
                     &mut self.shared_settings,

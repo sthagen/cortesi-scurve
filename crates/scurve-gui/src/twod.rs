@@ -15,6 +15,7 @@ use crate::{
 pub fn show_2d_pane(
     ui: &mut egui::Ui,
     app_state: &mut AppState,
+    render_cache: &mut crate::RenderCache,
     selected_curve: &mut SelectedCurve,
     available_curves: &[&str],
     shared_settings: &mut crate::SharedSettings,
@@ -71,13 +72,13 @@ pub fn show_2d_pane(
 
     ui.separator();
 
-    draw_2d_canvas(ui, app_state, selected_curve, shared_settings);
+    draw_2d_canvas(ui, render_cache, selected_curve, shared_settings);
 }
 
 /// Render the 2D drawing canvas and overlays.
 fn draw_2d_canvas(
     ui: &mut egui::Ui,
-    app_state: &mut AppState,
+    render_cache: &mut crate::RenderCache,
     selected_curve: &mut SelectedCurve,
     shared_settings: &crate::SharedSettings,
 ) {
@@ -88,7 +89,7 @@ fn draw_2d_canvas(
         .max(theme::canvas_2d::MIN_SIZE);
     let drawing_rect =
         egui::Rect::from_center_size(available_rect.center(), egui::Vec2::splat(drawing_size));
-    app_state.last_canvas_rect = Some(drawing_rect);
+    render_cache.last_canvas_rect = Some(drawing_rect);
     let painter = ui.painter_at(available_rect);
     painter.rect_filled(available_rect, 0.0, bg);
 
@@ -107,9 +108,9 @@ fn draw_2d_canvas(
             drawing_rect,
             scale,
             margin,
-            &mut app_state.cache_2d_screen,
+            &mut render_cache.cache_2d_screen,
         );
-        let screen_points = &app_state.cache_2d_screen;
+        let screen_points = &render_cache.cache_2d_screen;
 
         let line_color = theme::curve_color_with_brightness(1.0, shared_settings.curve_opacity);
         let line_width = theme::canvas_2d::LINE_WIDTH;
@@ -122,7 +123,7 @@ fn draw_2d_canvas(
                 line_width,
                 line_color,
                 shared_settings.curve_long_jumps,
-                &mut app_state.cache_2d_run,
+                &mut render_cache.cache_2d_run,
             );
         }
 
@@ -190,12 +191,12 @@ fn draw_2d_canvas(
                 };
 
             fill_snake_segments(
-                &mut app_state.snake_segments_2d,
+                &mut render_cache.snake_segments_2d,
                 snake_offset,
                 shared_settings.snake_length,
                 curve_points.len() as u32,
             );
-            let snake_segments = &app_state.snake_segments_2d;
+            let snake_segments = &render_cache.snake_segments_2d;
 
             let snake_mask: &[bool] = if shared_settings.snake_long_jumps {
                 &[]
@@ -203,7 +204,7 @@ fn draw_2d_canvas(
                 snake_membership_mask(
                     snake_segments,
                     curve_points.len(),
-                    &mut app_state.snake_mask_2d,
+                    &mut render_cache.snake_mask_2d,
                 )
             };
 
@@ -219,7 +220,7 @@ fn draw_2d_canvas(
                 snake_mask,
                 snake_stroke,
                 shared_settings.snake_long_jumps,
-                &mut app_state.cache_2d_run,
+                &mut render_cache.cache_2d_run,
                 tail_segment,
                 tail_frac,
                 tail_screen,
