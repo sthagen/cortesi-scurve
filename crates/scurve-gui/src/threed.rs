@@ -299,9 +299,10 @@ fn draw_3d_space_curve(
         );
 
         // Effective tail position: either interpolated or snapped to next point
-        // When on a long jump with snake_long_jumps=false, skip to the end of the segment
+        // When PARTWAY through a long jump with snake_long_jumps=false, skip to the end
+        // (If exactly at a point, don't snap - the body naturally starts there)
         let (tail_segment, tail_frac, tail_screen, tail_depth) =
-            if !tail_adjacent && !shared_settings.snake_long_jumps {
+            if raw_tail_frac > 0.0 && !tail_adjacent && !shared_settings.snake_long_jumps {
                 // Long jump with snake_long_jumps=false: snap to END of segment
                 (
                     tail_next,
@@ -341,9 +342,10 @@ fn draw_3d_space_curve(
         );
 
         // Effective head position: either interpolated or snapped to next point
-        // When on a long jump with snake_long_jumps=false, skip to the end of the segment
+        // When PARTWAY through a long jump with snake_long_jumps=false, skip to the end
+        // (If exactly at a point, don't snap - the body naturally ends there)
         let (head_segment, head_frac, head_screen, head_depth) =
-            if !head_adjacent && !shared_settings.snake_long_jumps {
+            if raw_head_frac > 0.0 && !head_adjacent && !shared_settings.snake_long_jumps {
                 // Long jump with snake_long_jumps=false: snap to END of segment
                 (
                     head_next,
@@ -402,6 +404,7 @@ fn draw_3d_space_curve(
             snake_included,
             &app_state.cache_caps,
             snake_segments,
+            shared_settings.snake_long_jumps,
             tail_segment,
             tail_frac,
             tail_screen,
@@ -624,6 +627,7 @@ fn collect_snake_draws(
     _snake_included: &[bool],
     _shorten_caps: &[(bool, bool)],
     _snake_segments: &[usize],
+    snake_long_jumps: bool,
     tail_segment: usize,
     tail_frac: f32,
     tail_screen: egui::Pos2,
@@ -664,7 +668,45 @@ fn collect_snake_draws(
         }
     }
 
-    // Build runs of connected segments
+    if snake_long_jumps {
+        // Build a single continuous path including long jumps
+        let mut snake_pts: Vec<egui::Pos2> = Vec::with_capacity(int_points.len() + 2);
+        let mut snake_depths: Vec<f32> = Vec::with_capacity(int_points.len() + 2);
+
+        // Start with interpolated tail (if it's not exactly at an integer point)
+        if tail_frac > 0.0 {
+            snake_pts.push(tail_screen);
+            snake_depths.push(tail_depth);
+        }
+
+        // Add all integer points
+        for &i in &int_points {
+            snake_pts.push(pts2d[i]);
+            snake_depths.push(pts3d[i][2]);
+        }
+
+        // End with interpolated head (if it's not exactly at an integer point)
+        if head_frac > 0.0 {
+            snake_pts.push(head_screen);
+            snake_depths.push(head_depth);
+        }
+
+        if snake_pts.len() >= 2 {
+            let avg_depth: f32 = snake_depths.iter().sum::<f32>() / snake_depths.len() as f32;
+            let brightness = segment_brightness(avg_depth);
+            draws.push(SnakeDraw {
+                depth: avg_depth,
+                width: segment_line_width(brightness),
+                color: snake_color_with_brightness(brightness),
+                points: snake_pts,
+                shorten: None,
+            });
+        }
+
+        return draws;
+    }
+
+    // For snake_long_jumps=false, build runs of connected segments
     let mut current_pts: Vec<egui::Pos2> = Vec::new();
     let mut current_depths: Vec<f32> = Vec::new();
 

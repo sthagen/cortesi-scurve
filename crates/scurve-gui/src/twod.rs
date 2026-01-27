@@ -142,9 +142,10 @@ fn draw_2d_canvas(
                 is_adjacent_2d(&curve_points[raw_tail_segment], &curve_points[tail_next]);
 
             // Effective tail position: either interpolated or snapped to next point
-            // When on a long jump with snake_long_jumps=false, skip to the end of the segment
+            // When PARTWAY through a long jump with snake_long_jumps=false, skip to the end
+            // (If exactly at a point, don't snap - the body naturally starts there)
             let (tail_segment, tail_frac, tail_screen) =
-                if !tail_adjacent && !shared_settings.snake_long_jumps {
+                if raw_tail_frac > 0.0 && !tail_adjacent && !shared_settings.snake_long_jumps {
                     // Long jump with snake_long_jumps=false: snap to END of segment
                     (tail_next, 0.0, screen_points[tail_next])
                 } else if raw_tail_frac > 0.0 {
@@ -169,9 +170,10 @@ fn draw_2d_canvas(
                 is_adjacent_2d(&curve_points[raw_head_segment], &curve_points[head_next]);
 
             // Effective head position: either interpolated or snapped to next point
-            // When on a long jump with snake_long_jumps=false, skip to the end of the segment
+            // When PARTWAY through a long jump with snake_long_jumps=false, skip to the end
+            // (If exactly at a point, don't snap - the body naturally ends there)
             let (head_segment, head_frac, head_screen) =
-                if !head_adjacent && !shared_settings.snake_long_jumps {
+                if raw_head_frac > 0.0 && !head_adjacent && !shared_settings.snake_long_jumps {
                     // Long jump with snake_long_jumps=false: snap to END of segment
                     (head_next, 0.0, screen_points[head_next])
                 } else if raw_head_frac > 0.0 {
